@@ -1,6 +1,5 @@
 import os
-from typing import List, Any
-
+import csv
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -10,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 # задаем параметры вебдрайверу
 driverPath = os.getcwd() + os.sep + 'chromedriver'  # Chrome Driver Directory
 chromeOptions = Options()
-# chromeOptions.add_argument('--headless')  # скрывать окна хрома
+chromeOptions.add_argument('--headless')  # скрывать окна хрома
 chromeOptions.add_argument('--no-sandbox')
 chromeOptions.add_argument('--disable-dev-shm-usage')
 # chromeOptions.add_argument("start-maximized") # на весь экран
@@ -18,6 +17,7 @@ chromeOptions.add_argument('--disable-dev-shm-usage')
 aut_url = 'http://supporthelp:qwerty@voip.bisys.ru/queue-stats/index.php'
 url = 'http://voip.bisys.ru/queue-stats/index.php'
 all_calls = {}
+path = 'output.csv'  # Путь то выходного файла
 
 
 def user_input():
@@ -37,8 +37,6 @@ def user_input():
         print(f'Запрошена стата за {len(days)} дней.. Поехали.')
         for day in days:
             open_daily_distribution(day, day, m, day)#итерация по функции за каждый день из диапазона
-        for key, value in all_calls.items():
-            print(f'{key} - {value}')
 
 
 def open_daily_distribution(d1, d2, m, day):
@@ -64,8 +62,6 @@ def open_daily_distribution(d1, d2, m, day):
     hours = [i for i in range(1, 25)]  # создал кортеж от 0 до 24, чтоб собрать данные за каждый час
     daily_calls = []# переменная для статы по дню
     for h in hours:
-#        hour_element = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="table2"]/tbody/tr[{h}]/td[1]')))
-#        hour = int(hour_element.get_attribute('innerHTML'))
         accept_calls_element = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="table2"]/tbody/tr[{h}]/td[2]')))
         accept_calls = accept_calls_element.get_attribute('innerHTML')
         miss_calls_element = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="table2"]/tbody/tr[{h}]/td[4]')))
@@ -77,8 +73,17 @@ def open_daily_distribution(d1, d2, m, day):
     driver.quit()
 
 
+def csv_writer(data, path):  # разбираем словарь на части и записываем в csv
+    with open("output.csv", "w") as outfile:
+        writer = csv.writer(outfile, delimiter=",")
+        writer.writerow(data)
+        writer.writerows(zip(*[data[key] for key in data]))  # записвает так, что ключ в первой ячейке слолбца, остальные данные под ним идут столбцом
+
+
 if __name__ == '__main__':
     try:
         user_input()
+        csv_writer(all_calls, path)
+        print('Информация собрана в файле output.csv')
     except(KeyboardInterrupt, SystemExit):
         print('\nПрограмма остановлена.')
